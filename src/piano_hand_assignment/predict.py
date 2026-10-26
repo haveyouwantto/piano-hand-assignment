@@ -6,7 +6,6 @@ module-level :func:`assign_hands` helper, which keeps a single cached assigner.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -169,6 +168,3 @@ def iter_midi_files(root: str | Path) -> Iterable[Path]:
         return
     for ext in ("*.mid", "*.midi", "*.MID", "*.MIDI"):
         yield from sorted(root.glob(ext))
-
-
-_ = os  # re-exported for callers that tweak environment variables

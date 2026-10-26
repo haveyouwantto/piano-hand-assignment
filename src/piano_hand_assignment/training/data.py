@@ -16,7 +16,6 @@ The pipeline is:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import random
 import zipfile
@@ -245,6 +244,3 @@ def main() -> None:
     stats = build_dataset(args.inputs, args.out, args.val_frac, args.test_frac,
                           args.min_notes)
     print(json.dumps(stats, ensure_ascii=False))
-
-
-_ = io
