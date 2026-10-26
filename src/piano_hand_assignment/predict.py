@@ -162,9 +162,16 @@ def assign_hands(source: str | Path | bytes, destination: str | Path | None = No
 
 
 def iter_midi_files(root: str | Path) -> Iterable[Path]:
+    """Yield MIDI files once each, even on case-insensitive file systems."""
     root = Path(root)
     if root.is_file():
         yield root
         return
-    for ext in ("*.mid", "*.midi", "*.MID", "*.MIDI"):
-        yield from sorted(root.glob(ext))
+    seen: set[Path] = set()
+    for pattern in ("*.mid", "*.midi", "*.MID", "*.MIDI"):
+        for path in sorted(root.glob(pattern)):
+            key = path.resolve()
+            if key in seen:
+                continue
+            seen.add(key)
+            yield path
