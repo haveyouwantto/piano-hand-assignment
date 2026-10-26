@@ -13,7 +13,7 @@ The tool is for piano MIDI that has no hand information — transcriptions, expo
 ## Quick start
 
 ```bash
-git clone https://github.com/anime-song/piano-hand-assignment.git
+git clone https://github.com/haveyouwantto/piano-hand-assignment.git
 cd piano-hand-assignment
 uv sync          # or: pip install -e .
 uv run pha-assign input.mid -o output.mid

@@ -22,7 +22,7 @@ tags: [midi, piano, hand-separation, music-information-retrieval]
 
 # piano-hand-assignment
 
-Weights for [piano-hand-assignment](https://github.com/anime-song/piano-hand-assignment):
+Weights for [piano-hand-assignment](https://github.com/haveyouwantto/piano-hand-assignment):
 assign every note of a piano MIDI file to the right or the left hand.
 
 ## Files
