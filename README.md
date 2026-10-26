@@ -6,7 +6,7 @@ The tool is for piano MIDI that has no hand information — transcriptions, expo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Model on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-model-orange)](https://huggingface.co/anime-song/piano-hand-assignment)
+[![Model on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-model-orange)](https://huggingface.co/hywt232/piano-hand-assignment)
 
 ---
 
@@ -19,7 +19,7 @@ uv sync          # or: pip install -e .
 uv run pha-assign input.mid -o output.mid
 ```
 
-Weights are downloaded from Hugging Face on first run and cached in `~/.cache/piano_hand_assignment`.
+Weights are downloaded from Hugging Face on first run and cached in `~/.cache/piano_hand_assignment`. If the Hub is unreachable, the same two files are fetched from the matching GitHub release instead.
 
 Directories work too:
 
@@ -142,8 +142,9 @@ Point inference at local weights with `--checkpoint-dir checkpoints`, or upload 
 
 | Environment variable | Default | Purpose |
 | --- | --- | --- |
-| `PHA_HF_REPO` | `anime-song/piano-hand-assignment` | model repository |
+| `PHA_HF_REPO` | `hywt232/piano-hand-assignment` | model repository |
 | `PHA_CACHE_DIR` | `~/.cache/piano_hand_assignment` | download cache |
+| `PHA_GITHUB_BASE` | release assets of this repository | fallback source when the Hub is blocked |
 
 `HandAssigner(checkpoint_dir=...)` and `pha-assign --checkpoint-dir ...` bypass the Hub entirely. `--archs lstm` runs a single model if you prefer the smaller footprint.
 

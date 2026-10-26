@@ -30,7 +30,7 @@ pha-serve = "piano_hand_assignment.api:main"
 
 [project.urls]
 Homepage = "https://github.com/haveyouwantto/piano-hand-assignment"
-Model = "https://huggingface.co/anime-song/piano-hand-assignment"
+Model = "https://huggingface.co/hywt232/piano-hand-assignment"
 
 [build-system]
 requires = ["setuptools>=64"]

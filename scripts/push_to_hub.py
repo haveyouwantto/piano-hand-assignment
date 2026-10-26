@@ -4,7 +4,7 @@
     python scripts/push_to_hub.py \
         --lstm checkpoints/lstm.pt \
         --transformer checkpoints/transformer.pt \
-        --repo-id anime-song/piano-hand-assignment
+        --repo-id hywt232/piano-hand-assignment
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--lstm", default="checkpoints/lstm.pt")
     ap.add_argument("--transformer", default="checkpoints/transformer.pt")
-    ap.add_argument("--repo-id", default="anime-song/piano-hand-assignment")
+    ap.add_argument("--repo-id", default="hywt232/piano-hand-assignment")
     ap.add_argument("--private", action="store_true")
     args = ap.parse_args()
 

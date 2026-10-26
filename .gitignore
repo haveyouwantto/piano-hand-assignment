@@ -12,3 +12,4 @@ out/
 *.mid
 !examples/*.mid
 .pytest_cache/
+README_hf.md
