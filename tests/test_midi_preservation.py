@@ -1,11 +1,12 @@
-"""The only thing the tool is allowed to change is which track a note lives in."""
+"""The only thing the tool is allowed to change is which track or channel a note lives in."""
 
 from __future__ import annotations
 
 import mido
 
-from piano_hand_assignment.midi_io import (collect_notes, load_midi, save_bytes,
-                                           snapshot, write_with_hands)
+from piano_hand_assignment.midi_io import (collect_notes, iter_abs_events, load_midi,
+                                           save_bytes, snapshot, track_channels,
+                                           write_with_hands)
 
 
 def build_sample() -> mido.MidiFile:
@@ -38,12 +39,12 @@ def build_sample() -> mido.MidiFile:
     return midi
 
 
-def test_notes_are_moved_but_never_altered():
+def test_track_split_preserves_every_event():
     midi = build_sample()
     notes = collect_notes(midi)
     assert len(notes) == 3
 
-    out = write_with_hands(midi, notes, [0, 1, 0])
+    out = write_with_hands(midi, notes, [0, 1, 0], split_channels=False)
     before, after = snapshot(midi), snapshot(out)
     original_tracks = len(midi.tracks)
     kept = [e for e in after["non_note"] if e[0] < original_tracks]
@@ -54,27 +55,58 @@ def test_notes_are_moved_but_never_altered():
     assert len(out.tracks) == original_tracks + 2  # only the two hand tracks are new
 
 
+def test_channel_split_moves_the_left_hand_to_a_free_channel():
+    midi = build_sample()
+    notes = collect_notes(midi)
+    out = write_with_hands(midi, notes, [0, 1, 0], split_channels=True)
+
+    original_channels = {msg.channel for _, _, msg in iter_abs_events(midi)
+                         if not msg.is_meta and getattr(msg, "channel", None) is not None}
+    right = track_channels(out, "Right Hand")
+    left = track_channels(out, "Left Hand")
+
+    assert right == [0]                                  # right hand keeps its channel
+    assert len(left) == 1
+    assert left[0] not in original_channels              # a channel the file did not use
+    assert left[0] != 9
+
+    # the left hand keeps pitch, velocity and timing
+    before = sorted((n.start, n.end, n.pitch, n.velocity) for n in notes)
+    after = sorted((n.start, n.end, n.pitch, n.velocity) for n in collect_notes(out))
+    assert before == after
+
+
+def test_channel_split_copies_the_channel_state():
+    midi = build_sample()
+    notes = collect_notes(midi)
+    out = write_with_hands(midi, notes, [0, 1, 0], split_channels=True)
+    left = track_channels(out, "Left Hand")[0]
+
+    kinds = [msg.type for track in out.tracks if (track.name or "") == "Left Hand"
+             for msg in track
+             if not msg.is_meta and getattr(msg, "channel", None) == left
+             and msg.type in ("program_change", "control_change", "pitchwheel")]
+    assert kinds.count("program_change") == 1
+    assert kinds.count("control_change") == 1
+    assert kinds.count("pitchwheel") == 1
+
+
 def test_drum_notes_are_not_touched():
     midi = build_sample()
     notes = collect_notes(midi)
     out = write_with_hands(midi, notes, [0, 1, 0])
 
     def drum_events(track_file):
-        return [(t, m.type, m.note) for _, t, m in _events(track_file)
+        return [(t, m.type, m.note) for _, t, m in iter_abs_events(track_file)
                 if not m.is_meta and getattr(m, "channel", None) == 9]
 
     assert drum_events(out) == drum_events(midi) == [(0, "note_on", 36), (240, "note_off", 36)]
 
 
-def _events(midi):
-    from piano_hand_assignment.midi_io import iter_abs_events
-    return list(iter_abs_events(midi))
-
-
 def test_roundtrip_through_bytes():
     midi = build_sample()
     notes = collect_notes(midi)
-    out = write_with_hands(midi, notes, [1, 1, 1])
+    out = write_with_hands(midi, notes, [1, 1, 1], split_channels=False)
     reloaded = load_midi(save_bytes(out))
     assert snapshot(reloaded)["notes"] == snapshot(midi)["notes"]
     assert len(reloaded.tracks) == len(midi.tracks) + 2

@@ -26,6 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--window", type=int, default=1024, help="notes per forward window")
     ap.add_argument("--merge-window", type=float, default=0.05,
                     help="chord merging window in quarter notes")
+    ap.add_argument("--no-split-channels", dest="split_channels", action="store_false",
+                    help="keep both hands on their original MIDI channels")
     return ap
 
 
@@ -36,7 +38,8 @@ def main(argv: list[str] | None = None) -> int:
                             checkpoint_dir=args.checkpoint_dir,
                             archs=[a.strip() for a in args.archs.split(",") if a.strip()],
                             window=args.window,
-                            merge_window=args.merge_window)
+                            merge_window=args.merge_window,
+                            split_channels=args.split_channels)
 
     files = list(iter_midi_files(args.input))
     if not files:
@@ -48,9 +51,10 @@ def main(argv: list[str] | None = None) -> int:
     for src in files:
         dst = out_root if single and out_root.suffix else out_root / f"{src.stem}_hands.mid"
         stats = assigner.assign_file(src, dst)
+        channels = f"ch {stats['right_channels']} / {stats['left_channels']}"
         print(f"{src.name:40s} {stats['notes']:6d} notes  "
               f"LH {stats['left_ratio'] * 100:5.1f}%  "
-              f"mean conf {stats['mean_confidence']:.3f}  -> {dst}")
+              f"mean conf {stats['mean_confidence']:.3f}  {channels}  -> {dst}")
     return 0
 
 

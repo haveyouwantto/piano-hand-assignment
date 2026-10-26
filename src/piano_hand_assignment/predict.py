@@ -16,7 +16,7 @@ from . import model as M
 from .features import build_features
 from .hub import ensure_checkpoints
 from .midi_io import (Note, collect_notes, load_midi, merge_chord_onsets,
-                      save_bytes, write_with_hands)
+                      save_bytes, track_channels, write_with_hands)
 
 DEFAULT_ARCHS = ("lstm", "transformer")
 DEFAULT_WINDOW = 1024
@@ -41,11 +41,13 @@ class HandAssigner:
                  archs: Sequence[str] = DEFAULT_ARCHS,
                  window: int = DEFAULT_WINDOW,
                  merge_window: float = DEFAULT_MERGE_WINDOW,
-                 batch_size: int = 8):
+                 batch_size: int = 8,
+                 split_channels: bool = True):
         self.device = _resolve_device(device)
         self.window = window
         self.merge_window = merge_window
         self.batch_size = batch_size
+        self.split_channels = split_channels
         paths = ensure_checkpoints(repo_id=repo_id, checkpoint_dir=checkpoint_dir,
                                    archs=tuple(archs))
         self.archs = tuple(archs)
@@ -100,17 +102,20 @@ class HandAssigner:
         return probs.argmax(1).astype(np.int64), probs.max(1)
 
     # ------------------------------------------------------------------- files
-    def assign_bytes(self, data: bytes) -> bytes:
+    def assign_bytes(self, data: bytes, split_channels: bool | None = None) -> bytes:
         midi = load_midi(bytes(data))
         notes = collect_notes(midi)
         labels, _ = self.assign_notes(notes, midi.ticks_per_beat)
-        return save_bytes(write_with_hands(midi, notes, labels))
+        split = self.split_channels if split_channels is None else split_channels
+        return save_bytes(write_with_hands(midi, notes, labels, split_channels=split))
 
-    def assign_file(self, src: str | Path, dst: str | Path) -> dict:
+    def assign_file(self, src: str | Path, dst: str | Path,
+                    split_channels: bool | None = None) -> dict:
         midi = load_midi(str(src))
         notes = collect_notes(midi)
         labels, conf = self.assign_notes(notes, midi.ticks_per_beat)
-        out = write_with_hands(midi, notes, labels)
+        split = self.split_channels if split_channels is None else split_channels
+        out = write_with_hands(midi, notes, labels, split_channels=split)
         Path(dst).parent.mkdir(parents=True, exist_ok=True)
         out.save(str(dst))
         left = int((labels == 1).sum())
@@ -119,6 +124,8 @@ class HandAssigner:
             "left_hand": left,
             "right_hand": len(notes) - left,
             "left_ratio": float(left / len(notes)) if notes else 0.0,
+            "left_channels": track_channels(out, "Left Hand"),
+            "right_channels": track_channels(out, "Right Hand"),
             "mean_confidence": float(conf.mean()) if len(conf) else 0.0,
             "low_confidence_ratio": float((conf < 0.7).mean()) if len(conf) else 0.0,
         }

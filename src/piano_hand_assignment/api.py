@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, Response
 
 from .predict import HandAssigner
@@ -29,24 +29,28 @@ def health() -> JSONResponse:
     assigner = get_assigner()
     return JSONResponse({"status": "ok",
                          "architectures": list(assigner.archs),
-                         "device": str(assigner.device)})
+                         "device": str(assigner.device),
+                         "split_channels": assigner.split_channels})
 
 
 @app.post("/assign", responses={200: {"content": {"audio/midi": {}}}})
-async def assign(file: UploadFile = File(...)) -> Response:
+async def assign(file: UploadFile = File(...),
+                 split_channels: bool = Form(True)) -> Response:
     """Assign hands to a MIDI file.
 
     Send the MIDI as multipart form data under the field ``file``. The response
     body is a Standard MIDI File: note events are moved into ``Right Hand`` and
-    ``Left Hand`` tracks, everything else is left untouched.
+    ``Left Hand`` tracks, and with ``split_channels`` the left hand sits on its
+    own MIDI channel. Everything else is left untouched.
     """
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="empty upload")
     try:
-        out = get_assigner().assign_bytes(data)
+        out = get_assigner().assign_bytes(data, split_channels=split_channels)
     except Exception as exc:                      # malformed MIDI, unsupported input
         raise HTTPException(status_code=422, detail=f"could not process MIDI: {exc}") from exc
+
     name = (file.filename or "output.mid").rsplit(".", 1)[0]
     out_name = f"{name}_hands.mid"
     ascii_name = name.encode("ascii", "ignore").decode() or "output"

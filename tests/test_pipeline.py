@@ -43,10 +43,16 @@ def test_assign_file(tmp_path: Path):
     stats = assigner.assign_file(src, dst)
 
     assert stats["notes"] == len(collect_notes(load_midi(src)))
+    assert stats["left_channels"] and stats["right_channels"]
+    assert set(stats["left_channels"]) != set(stats["right_channels"])
     before = snapshot(load_midi(src))
     after = snapshot(load_midi(dst))
     original_tracks = len(load_midi(src).tracks)
-    assert before["notes"] == after["notes"]
+
+    def without_channel(rows):
+        return sorted((start, end, pitch, velocity) for start, end, pitch, velocity, _ in rows)
+
+    assert without_channel(before["notes"]) == without_channel(after["notes"])
     assert before["non_note"] == [e for e in after["non_note"] if e[0] < original_tracks]
 
 

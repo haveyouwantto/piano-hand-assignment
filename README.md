@@ -54,7 +54,7 @@ curl -X POST http://localhost:8000/assign \
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/health` | status, loaded architectures, device |
-| `POST` | `/assign` | multipart field `file` → MIDI file with hand tracks |
+| `POST` | `/assign` | multipart field `file` → MIDI file with hand tracks; optional form field `split_channels` |
 
 `POST /assign` answers with `audio/midi` and a `Content-Disposition` header carrying the original file name.
 
@@ -70,13 +70,18 @@ Given a file with one piano part, the output keeps the original tracks (minus th
 [track] Left Hand              ← notes the left hand plays
 ```
 
+The left hand also moves to a MIDI channel the file does not use, so software that only distinguishes channels — a simple player, a piano-learning app, a channel-routed DAW template — shows the two hands separately. The channel state the left hand needs (bank select, program, volume, pan, sustain, pitch bend, pressure) is copied from the source channel at the same ticks, so both hands keep their original sound.
+
 Details of the contract:
 
-- Every note keeps its pitch, velocity, start tick, end tick and MIDI channel.
-- Every non-note event keeps its type, tick and payload; drum tracks are not touched at all.
+- Every note keeps its pitch, velocity, start tick and end tick.
+- The right hand keeps the channel it came from; the left hand gets a free channel (`0`–`15`, never `9`).
+- Every non-note event keeps its type, tick and payload; drum tracks are not touched at all. The only additions are the copied channel-state messages for the left hand and the two `track_name` meta events of the new tracks.
 - The two hand tracks are appended, so track indices of the original tracks stay valid.
 - A type-0 file (single track) is written as type 1, since two note tracks are required.
-- Notes are not re-quantised, merged, shortened or re-voiced. The only thing that changes is which track a note lives on.
+- Notes are not re-quantised, merged, shortened or re-voiced. The only thing that changes is which track and channel a note lives on.
+
+If every channel in the file is already taken, the hands keep their channels and only the tracks differ; a `RuntimeWarning` reports it. Pass `--no-split-channels` (CLI), `split_channels=False` (Python) or `split_channels=false` (HTTP) to keep both hands on their original channels.
 
 The test suite checks this contract note by note and event by event (`tests/test_midi_preservation.py`).
 
