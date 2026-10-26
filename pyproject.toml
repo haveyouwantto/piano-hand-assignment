@@ -5,7 +5,7 @@ description = "Split piano MIDI into right-hand and left-hand tracks"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "anime-song" }]
+authors = [{ name = "haveyouwantto" }]
 keywords = ["midi", "piano", "hand separation", "music information retrieval"]
 classifiers = [
   "Programming Language :: Python :: 3",
